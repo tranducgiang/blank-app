@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import plotly.graph_objects as go
 
 st.title("🎈 My new app")
 st.write(
@@ -31,17 +32,13 @@ with col2:
 
 
 df = pd.read_csv("files/btc_2021.csv", parse_dates=["datetime"])
-fig_dict = {
-  "data": [
-    {
-      "type": "candlestick",
-      "x": df["datetime"].astype(str).tolist(),
-      "open": df["open"].tolist(),
-      "high": df["high"].tolist(),
-      "low": df["low"].tolist(),
-      "close": df["close"].tolist()
-    }
-  ],
-  "layout": {"title": "BTC Candlestick (dict)"}
-}
-st.plotly_chart(fig_dict)
+# 1. Candlestick Chart (tốt nhất cho OHLC)
+fig = go.Figure(data=[go.Candlestick(
+    x=df['datetime'],
+    open=df['open'],
+    high=df['high'],
+    low=df['low'],
+    close=df['close']
+)])
+fig.update_layout(title="BTC Candlestick Chart", xaxis_rangeslider_visible=False)
+st.plotly_chart(fig)
