@@ -30,6 +30,6 @@ with col2:
     st.bar_chart(data.set_index('Ngày')['Giá Trị C'])
 
 df = pd.read_csv("files//btc_2021.csv")
-st.line_chart(df)
-st.bar_chart(df)
-st.scatter_chart(df)
+st.write(
+   "so luong dong: "+str(len(df))
+)
