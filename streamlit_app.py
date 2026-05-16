@@ -29,3 +29,7 @@ with col1:
 with col2:
     st.bar_chart(data.set_index('Ngày')['Giá Trị C'])
 
+df = pd.DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
+st.line_chart(df)
+st.bar_chart(df)
+st.scatter_chart(df)
