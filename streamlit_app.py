@@ -31,14 +31,29 @@ with col2:
     st.bar_chart(data.set_index('Ngày')['Giá Trị C'])
 
 
-df = pd.read_csv("files/btc_2021.csv", parse_dates=["datetime"])
-# 1. Candlestick Chart (tốt nhất cho OHLC)
-fig = go.Figure(data=[go.Candlestick(
-    x=df['datetime'],
-    open=df['open'],
-    high=df['high'],
-    low=df['low'],
-    close=df['close']
-)])
-fig.update_layout(title="BTC Candlestick Chart", xaxis_rangeslider_visible=False)
-st.plotly_chart(fig)
+st.divider()
+st.subheader("🔒 BTC Charts (Protected)")
+
+# Simple password protection (change PASSWORD as needed)
+PASSWORD = "astro123"
+password = st.text_input("Nhập mật khẩu để xem dữ liệu BTC", type="password")
+
+if password:
+    if password == PASSWORD:
+        # Load and display BTC data and candlestick only after correct password
+        df = pd.read_csv("files/btc_2021.csv", parse_dates=["datetime"])
+        st.success("Xác thực thành công — hiển thị dữ liệu BTC.")
+        st.dataframe(df.head())
+
+        # 1. Candlestick Chart (tốt nhất cho OHLC)
+        fig = go.Figure(data=[go.Candlestick(
+            x=df['datetime'],
+            open=df['open'],
+            high=df['high'],
+            low=df['low'],
+            close=df['close']
+        )])
+        fig.update_layout(title="BTC Candlestick Chart", xaxis_rangeslider_visible=False)
+        st.plotly_chart(fig)
+    else:
+        st.error("Mật khẩu không đúng. Vui lòng thử lại.")
