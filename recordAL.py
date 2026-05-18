@@ -425,17 +425,106 @@ class SpiritualTradingCalc:
         return ""
     
 
+import pandas as pd
+import os
+from glob import glob
+class ReadFiles:
+    def read_multiple_excel_files(self, file_pattern, sheet_name=0):
+        """
+        Đọc nhiều file Excel từ một pattern hoặc danh sách file
+        file excel có 2 loại của binance + Bingx
+
+        
+        Args:
+            file_pattern (str or list): Đường dẫn pattern (vd: "data/*.xlsx") hoặc list file paths
+            sheet_name (int or str): Tên sheet hoặc số thứ tự sheet (mặc định sheet đầu tiên)
+        
+        Returns:
+            dict: {tên_file: DataFrame}
+        """
+            # Lấy đường dẫn thư mục chứa script hiện tại
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        # Tạo đường dẫn tuyệt đối đến file pattern
+        full_pattern = os.path.join(script_dir, file_pattern)
+        print(f"📂 Đang tìm trong: {full_pattern}")
+    
+        files = glob(full_pattern)
+        print(f"🔍 Tìm thấy {len(files)} file")
+
+        # Lấy danh sách file
+        # if isinstance(file_pattern, list):
+        #     files = file_pattern
+        # else:
+        #     files = glob(file_pattern)
+        
+        if not files:
+            print("❌ Không tìm thấy file nào!")
+            return {}
+        
+        results = {}
+        for file in files:
+            try:
+                df = pd.read_excel(file, sheet_name=sheet_name)
+                file_name = os.path.basename(file)
+                results[file_name] = df
+                print(f"✅ Đã đọc: {file_name} - {len(df)} dòng")
+            except Exception as e:
+                print(f"❌ Lỗi đọc {file}: {e}")
+        
+        return results
+    #gop cac file excel theo 2 kieu: vertical (chồng dọc) hoặc horizontal (ghép ngang)
+    def merge_multiple_excel_files(self, file_pattern, sheet_name=0, merge_type='vertical'):
+        """
+        Đọc và gộp nhiều file Excel
+        
+        Args:
+            file_pattern (str): Pattern đường dẫn (vd: "data/*.xlsx")
+            sheet_name (int or str): Tên sheet
+            merge_type (str): 'vertical' (chồng dọc) hoặc 'horizontal' (ghép ngang)
+        
+        Returns:
+            DataFrame: DataFrame đã gộp
+        """
+        files = glob(file_pattern)
+        
+        if not files:
+            print("❌ Không tìm thấy file nào!")
+            return pd.DataFrame()
+        
+        dfs = []
+        for file in files:
+            df = pd.read_excel(file, sheet_name=sheet_name)
+            df['source_file'] = os.path.basename(file)  # Thêm cột nguồn
+            dfs.append(df)
+            print(f"✅ Đã đọc: {os.path.basename(file)} - {len(df)} dòng")
+        
+        if merge_type == 'vertical':
+            result = pd.concat(dfs, ignore_index=True)
+            print(f"\n📊 Tổng cộng: {len(result)} dòng từ {len(files)} file")
+        else:
+            result = pd.concat(dfs, axis=1, ignore_index=True)
+            print(f"\n📊 Đã ghép ngang: {len(files)} file")
+        
+        return result
 
 
+readexcel = ReadFiles()
+data =readexcel.read_multiple_excel_files("files/*.xlsx")
+    # Truy cập từng file
+for file_name, df in data.items():
+    print(f"\n📊 {file_name}:")
+    print(df.head())
 
+# Hoặc với 1 giá trị đơn lẻ
+date_str = "20-4-2025 12:12:12"
+date_obj = pd.to_datetime(date_str, format='%d-%m-%Y %H:%M:%S')
+new_date = date_obj.strftime('%m/%d/%Y')
+print(new_date)  # 04/20/2025
 
 # --- Chạy thử ---
-hom_nay = datetime.date(2026, 4, 1)  # Thay đổi ngày ở đây nếu cần %yyyy %m %d
-
-
-
-cal = InternationalFixedCalendarLich13Thang()
-cal.process_lunar_csv("files\duonglich.csv", "files\output_lunar_dates.csv")
+# hom_nay = datetime.date(2026, 4, 1)  # Thay đổi ngày ở đây nếu cần %yyyy %m %d
+# cal = InternationalFixedCalendarLich13Thang()
+# cal.process_lunar_csv("files\duonglich.csv", "files\output_lunar_dates.csv")
 
 # t,d, m, y = cal.get_ifc_date(hom_nay)
 # print(f"\nNgày {hom_nay} theo Lịch Gregory 13Thang tương ứng với: {t} {d} {m} {y} (IFC) \n")
