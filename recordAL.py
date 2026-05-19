@@ -472,44 +472,10 @@ class ReadFiles:
                 print(f"❌ Lỗi đọc {file}: {e}")
         
         return results
-    #gop cac file excel theo 2 kieu: vertical (chồng dọc) hoặc horizontal (ghép ngang)
-    def merge_multiple_excel_files(self, file_pattern, sheet_name=0, merge_type='vertical'):
-        """
-        Đọc và gộp nhiều file Excel
-        
-        Args:
-            file_pattern (str): Pattern đường dẫn (vd: "data/*.xlsx")
-            sheet_name (int or str): Tên sheet
-            merge_type (str): 'vertical' (chồng dọc) hoặc 'horizontal' (ghép ngang)
-        
-        Returns:
-            DataFrame: DataFrame đã gộp
-        """
-        files = glob(file_pattern)
-        
-        if not files:
-            print("❌ Không tìm thấy file nào!")
-            return pd.DataFrame()
-        
-        dfs = []
-        for file in files:
-            df = pd.read_excel(file, sheet_name=sheet_name)
-            df['source_file'] = os.path.basename(file)  # Thêm cột nguồn
-            dfs.append(df)
-            print(f"✅ Đã đọc: {os.path.basename(file)} - {len(df)} dòng")
-        
-        if merge_type == 'vertical':
-            result = pd.concat(dfs, ignore_index=True)
-            print(f"\n📊 Tổng cộng: {len(result)} dòng từ {len(files)} file")
-        else:
-            result = pd.concat(dfs, axis=1, ignore_index=True)
-            print(f"\n📊 Đã ghép ngang: {len(files)} file")
-        
-        return result
-
 
 readexcel = ReadFiles()
 data =readexcel.read_multiple_excel_files("files/*.xlsx")
+
     # Truy cập từng file
 for file_name, df in data.items():
     print(f"\n📊 {file_name}:")
