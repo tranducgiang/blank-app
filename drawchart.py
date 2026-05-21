@@ -4,7 +4,7 @@ from pnlUtils import canchi_color, get_hanh, SEASON_COLORS, get_solar_terms
 import pandas as pd
 
 
-def build_figure(df_filtered, year):
+def build_figure(df_filtered, year, ngay_sinh=None, gio_sinh=12):
     """Xây dựng biểu đồ PNL cho toàn bộ 1 năm, hỗ trợ drag/zoom tự do"""
 
     # Lọc data theo năm
@@ -58,12 +58,36 @@ def build_figure(df_filtered, year):
     if not df_pnl.empty:
         bar_colors = ['#00e676' if x >= 0 else '#ff1744' for x in df_pnl['pnl']]
 
+        # Khởi tạo TuViAnalyzer nếu có ngày sinh
+        _analyzer = None
+        if ngay_sinh is not None:
+            try:
+                from tuvi import TuViAnalyzer
+                _analyzer = TuViAnalyzer()
+            except Exception:
+                pass
+
         customdata = []
         for _, r in df_pnl.iterrows():
             can_s = str(r.get('can', '')).strip()
             chi_s = str(r.get('chi', '')).strip()
             hc, hh = get_hanh(can_s, chi_s)
-            customdata.append([can_s, chi_s, hc, hh])
+
+            # Lộc ngày
+            tiet_khi_str  = str(r.get('tiet_khi', '')).strip()   if 'tiet_khi'      in r.index else ''
+            hanh_tiet_str = str(r.get('hanh_tiet_khi', '')).strip() if 'hanh_tiet_khi' in r.index else ''
+            loc_str = ''
+            if _analyzer is not None:
+                try:
+                    kq = _analyzer.luan_ngay_loc(ngay_sinh, r['date'].to_pydatetime(), gio_sinh)
+                    if kq:
+                        tiet_khi_str  = kq['thong_tin_co_ban'].get('tiet_khi', tiet_khi_str)
+                        hanh_tiet_str = kq['thong_tin_co_ban'].get('hanh_tiet_khi', hanh_tiet_str)
+                        loc_str = kq.get('tong_ket', '')
+                except Exception:
+                    pass
+
+            customdata.append([can_s, chi_s, hc, hh, tiet_khi_str, hanh_tiet_str, loc_str])
 
         fig.add_trace(go.Bar(
             x=df_pnl['date'],
@@ -81,7 +105,9 @@ def build_figure(df_filtered, year):
                 "<b>%{x|%d/%m/%Y}</b><br>"
                 "PNL: %{y:+,.2f} USD<br>"
                 "Can Chi: %{customdata[0]} %{customdata[1]}<br>"
-                "Ngũ hành: %{customdata[2]} · %{customdata[3]}"
+                "Ngũ hành: %{customdata[2]} · %{customdata[3]}<br>"
+                "Tiết khí: %{customdata[4]} (%{customdata[5]})<br>"
+                "%{customdata[6]}"
                 "<extra></extra>"
             ),
             cliponaxis=False,
