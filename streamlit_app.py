@@ -211,6 +211,8 @@ def _render_chart_section(df_filtered: pd.DataFrame, available_years: list[int])
     with nav_cols[1]:
         if st.button("◀ Prev", key="prev", disabled=(year_idx == 0)):
             st.session_state.selected_year = available_years[year_idx - 1]
+            for k in ["tog_moon", "tog_canchi", "tog_pnl_label", "tog_solar"]:
+                st.session_state.pop(k, None)
             st.rerun()
 
     for i, yr in enumerate(available_years):
@@ -220,6 +222,8 @@ def _render_chart_section(df_filtered: pd.DataFrame, available_years: list[int])
                 st.markdown('<div class="year-btn-active">', unsafe_allow_html=True)
             if st.button(str(yr), key=f"year_{yr}"):
                 st.session_state.selected_year = yr
+                for k in ["tog_moon", "tog_canchi", "tog_pnl_label", "tog_solar"]:
+                    st.session_state.pop(k, None)
                 st.rerun()
             if is_active:
                 st.markdown('</div>', unsafe_allow_html=True)
@@ -227,6 +231,8 @@ def _render_chart_section(df_filtered: pd.DataFrame, available_years: list[int])
     with nav_cols[2 + len(available_years)]:
         if st.button(" ▶", key="next", disabled=(year_idx == len(available_years) - 1)):
             st.session_state.selected_year = available_years[year_idx + 1]
+            for k in ["tog_moon", "tog_canchi", "tog_pnl_label", "tog_solar"]:
+                st.session_state.pop(k, None)
             st.rerun()
 
     with nav_cols[2 + len(available_years) + 1]:
@@ -236,13 +242,21 @@ def _render_chart_section(df_filtered: pd.DataFrame, available_years: list[int])
     st.markdown('<div class="toggle-row">', unsafe_allow_html=True)
     tog_cols = st.columns([1, 1, 1, 1, 6])
     with tog_cols[0]:
-        show_moon = st.toggle("🌙 Moon / Specdate", key="tog_moon")
+        show_moon = st.toggle("🌙 Moon / Specdate", key="tog_moon",
+                              value=st.session_state.get("_tog_moon_val", True))
+        st.session_state["_tog_moon_val"] = show_moon
     with tog_cols[1]:
-        show_canchi = st.toggle("☯ Can Chi", key="tog_canchi")
+        show_canchi = st.toggle("☯ Can Chi", key="tog_canchi",
+                                value=st.session_state.get("_tog_canchi_val", True))
+        st.session_state["_tog_canchi_val"] = show_canchi
     with tog_cols[2]:
-        show_pnl_label = st.toggle("🔢 Nhãn PNL", key="tog_pnl_label")
+        show_pnl_label = st.toggle("🔢 Nhãn PNL", key="tog_pnl_label",
+                                   value=st.session_state.get("_tog_pnl_label_val", True))
+        st.session_state["_tog_pnl_label_val"] = show_pnl_label
     with tog_cols[3]:
-        show_solar = st.toggle("🌸 Tứ khí", key="tog_solar")
+        show_solar = st.toggle("🌸 Tứ khí", key="tog_solar",
+                               value=st.session_state.get("_tog_solar_val", True))
+        st.session_state["_tog_solar_val"] = show_solar
     st.markdown('</div>', unsafe_allow_html=True)
 
     # ── Build + render chart ────────────────────────────────────
@@ -262,7 +276,7 @@ def _render_chart_section(df_filtered: pd.DataFrame, available_years: list[int])
     with nav_cols[2 + len(available_years) + 1]:
         st.markdown(f'<span class="info-text">{info}</span>', unsafe_allow_html=True)
 
-    st.plotly_chart(fig, use_container_width=True, height=640, config={
+    st.plotly_chart(fig, use_container_width=True, height=768, config={
         'scrollZoom': True,
         'displaylogo': False,
         'modeBarButtonsToRemove': ['select2d', 'lasso2d'],
