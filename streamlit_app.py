@@ -991,9 +991,9 @@ def main():
     _render_pnl_tuvi_section()
 
      # ========== THÊM SECTION VÒNG TRÒN 24 TIẾT KHÍ ==========
-    _render_tiet_khi_circle_section()
+     # _render_tiet_khi_circle_section()
     # Section vòng tròn tiết khí với PNL (THÊM MỚI)
     _render_tiet_khi_pnl_section()
-    
+
 if __name__ == "__main__":
     main()
