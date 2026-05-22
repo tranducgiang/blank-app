@@ -495,7 +495,7 @@ def _render_ngay_sinh_global():
             f" · Giờ <b style='color:#ffcc44;'>{lbl}</b></div>",
             unsafe_allow_html=True,
         )
-        st.markdown("---")
+    st.markdown("---")
 
 def _render_tuvi_section():
     """Khung Tứ Trụ đầy đủ."""
