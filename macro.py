@@ -36,6 +36,26 @@ APP_CSS = """
 }
 .start-btn button:hover { background-color: #00cc55; }
 
+.year-btn-active button {
+    background-color: #ffaa00 !important;
+    color: #0d0d1a !important;
+    font-weight: bold !important;
+    border-color: #ffcc44 !important;
+    box-shadow: 0 0 8px rgba(255,170,0,0.45) !important;
+}
+.year-btn-active button:hover { background-color: #ffcc00 !important; }
+
+.toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 4px 0 6px 0;
+    padding: 5px 12px;
+    background: #0f1120;
+    border-radius: 8px;
+    border: 1px solid #1e1e30;
+}
+
 .info-text {
     color: #7fff7f;
     margin-left: 14px;

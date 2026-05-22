@@ -196,39 +196,68 @@ def _render_chart_section(df_filtered: pd.DataFrame, available_years: list[int])
     current_year = st.session_state.selected_year
     year_idx     = available_years.index(current_year) if current_year in available_years else 0
 
-    # Navigation bar
+    # ── Hàng 1: điều hướng năm ─────────────────────────────────
     nav_cols = st.columns([1, 1] + [0.8] * len(available_years) + [1, 4])
 
     with nav_cols[0]:
-        if st.button("🔄 Reload", key="reload"):
+        if st.button("🔄", key="reload"):
             st.rerun()
 
     with nav_cols[1]:
-        if st.button("◀ Prev", key="prev", disabled=(year_idx == 0)):
+        if st.button("◀ ", key="prev", disabled=(year_idx == 0)):
             st.session_state.selected_year = available_years[year_idx - 1]
             st.rerun()
 
     for i, yr in enumerate(available_years):
         with nav_cols[2 + i]:
-            label = f"**{yr}**" if yr == current_year else str(yr)
-            if st.button(label, key=f"year_{yr}"):
+            is_active = (yr == current_year)
+            if is_active:
+                st.markdown('<div class="year-btn-active">', unsafe_allow_html=True)
+            if st.button(str(yr), key=f"year_{yr}"):
                 st.session_state.selected_year = yr
                 st.rerun()
+            if is_active:
+                st.markdown('</div>', unsafe_allow_html=True)
 
     with nav_cols[2 + len(available_years)]:
-        if st.button("Next ▶", key="next", disabled=(year_idx == len(available_years) - 1)):
+        if st.button(" ▶", key="next", disabled=(year_idx == len(available_years) - 1)):
             st.session_state.selected_year = available_years[year_idx + 1]
             st.rerun()
 
-    # Build + render chart
+    with nav_cols[2 + len(available_years) + 1]:
+        pass  # info text sẽ render sau
+
+    # ── Hàng 2: toggle hiển thị ────────────────────────────────
+    st.markdown('<div class="toggle-row">', unsafe_allow_html=True)
+    tog_cols = st.columns([1, 1, 1, 1, 6])
+    with tog_cols[0]:
+        show_moon = st.toggle("🌙 Moon / Specdate", value=st.session_state.get("tog_moon", True), key="tog_moon")
+    with tog_cols[1]:
+        show_canchi = st.toggle("☯ Can Chi", value=st.session_state.get("tog_canchi", True), key="tog_canchi")
+    with tog_cols[2]:
+        show_pnl_label = st.toggle("🔢 Nhãn PNL", value=st.session_state.get("tog_pnl_label", True), key="tog_pnl_label")
+    with tog_cols[3]:
+        show_solar = st.toggle("🌸 Tứ khí", value=st.session_state.get("tog_solar", True), key="tog_solar")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # ── Build + render chart ────────────────────────────────────
     ngay_sinh_dt = st.session_state.get('ngay_sinh_dt', None)
     gio_sinh_so  = st.session_state.get('gio_sinh_so', 12)
-    fig, info = build_figure(df_filtered, current_year, ngay_sinh_dt, gio_sinh_so)
 
+    chart_opts = {
+        "show_moon":      show_moon,
+        "show_canchi":    show_canchi,
+        "show_pnl_label": show_pnl_label,
+        "show_solar":     show_solar,
+    }
+
+    fig, info = build_figure(df_filtered, current_year, ngay_sinh_dt, gio_sinh_so, chart_opts)
+
+    # Render info text vào cột cuối hàng năm
     with nav_cols[2 + len(available_years) + 1]:
         st.markdown(f'<span class="info-text">{info}</span>', unsafe_allow_html=True)
 
-    st.plotly_chart(fig, use_container_width=True, config={
+    st.plotly_chart(fig, use_container_width=True, height=512, config={
         'scrollZoom': True,
         'displaylogo': False,
         'modeBarButtonsToRemove': ['select2d', 'lasso2d'],
@@ -466,6 +495,7 @@ def _render_ngay_sinh_global():
             f" · Giờ <b style='color:#ffcc44;'>{lbl}</b></div>",
             unsafe_allow_html=True,
         )
+        st.markdown("---")
 
 def _render_tuvi_section():
     """Khung Tứ Trụ đầy đủ."""
@@ -749,7 +779,9 @@ def main():
     _handle_reset_button()
     _render_sidebar_status()
 
-    # Main area
+    # Main area — ngày sinh lên đầu
+    _render_ngay_sinh_global()
+
     current_year = _render_chart_section(
         st.session_state.df_filtered,
         st.session_state.available_years,
@@ -761,7 +793,6 @@ def main():
             current_year,
         )
 
-    _render_ngay_sinh_global()
     _render_tuvi_section()
     _render_pnl_tuvi_section()
 

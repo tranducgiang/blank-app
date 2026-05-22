@@ -4,8 +4,15 @@ from pnlUtils import canchi_color, get_hanh, SEASON_COLORS, get_solar_terms
 import pandas as pd
 
 
-def build_figure(df_filtered, year, ngay_sinh=None, gio_sinh=12):
+def build_figure(df_filtered, year, ngay_sinh=None, gio_sinh=12, chart_opts=None):
     """Xây dựng biểu đồ PNL cho toàn bộ 1 năm, hỗ trợ drag/zoom tự do"""
+
+    if chart_opts is None:
+        chart_opts = {}
+    show_moon      = chart_opts.get("show_moon",      True)
+    show_canchi    = chart_opts.get("show_canchi",     True)
+    show_pnl_label = chart_opts.get("show_pnl_label", True)
+    show_solar     = chart_opts.get("show_solar",      True)
 
     # Lọc data theo năm
     df_view = df_filtered[df_filtered['date'].dt.year == year].copy()
@@ -97,7 +104,7 @@ def build_figure(df_filtered, year, ngay_sinh=None, gio_sinh=12):
             marker_line_width=0,
             opacity=0.88,
             yaxis="y",
-            text=df_pnl['pnl'].apply(lambda x: f'{x:+,.0f}'),
+            text=df_pnl['pnl'].apply(lambda x: f'{x:+,.0f}') if show_pnl_label else None,
             textposition='outside',
             textfont=dict(size=9, color='rgba(220,220,220,0.9)'),
             customdata=customdata,
@@ -133,87 +140,90 @@ def build_figure(df_filtered, year, ngay_sinh=None, gio_sinh=12):
 
     annotations = []
 
-    for _, row in phase_rows.iterrows():
-        d = row['date'].normalize()
-        pnl_val = pnl_by_date.get(d, 0)
-        icon = phase_labels.get(row['moon_numeric'], "🌙")
-        ay = -22 if pnl_val >= 0 else 22
-        annotations.append(dict(
-            x=d, y=pnl_val,
-            xref="x", yref="y",
-            text=icon,
-            showarrow=True,
-            arrowhead=0, arrowwidth=1, arrowcolor="rgba(255,215,0,0.4)",
-            ax=0, ay=ay,
-            font=dict(size=18, color="#FFD700"),
-            bgcolor="rgba(0,0,0,0)", borderwidth=0,
-        ))
+    if show_moon:
+        for _, row in phase_rows.iterrows():
+            d = row['date'].normalize()
+            pnl_val = pnl_by_date.get(d, 0)
+            icon = phase_labels.get(row['moon_numeric'], "🌙")
+            ay = -22 if pnl_val >= 0 else 22
+            annotations.append(dict(
+                x=d, y=pnl_val,
+                xref="x", yref="y",
+                text=icon,
+                showarrow=True,
+                arrowhead=0, arrowwidth=1, arrowcolor="rgba(255,215,0,0.4)",
+                ax=0, ay=ay,
+                font=dict(size=18, color="#FFD700"),
+                bgcolor="rgba(0,0,0,0)", borderwidth=0,
+            ))
 
-    for _, row in spec_rows.iterrows():
-        d = row['date'].normalize()
-        pnl_val = pnl_by_date.get(d, 0)
-        sv = row['_spec']
-        label = spec_map.get(sv, sv)
-        is_ram = sv in ("ram", "rằm")
-        color = "#FFD700" if is_ram else "#9b9bff"
-        ay = -44 if pnl_val >= 0 else 44
-        annotations.append(dict(
-            x=d, y=pnl_val,
-            xref="x", yref="y",
-            text=label,
-            showarrow=True,
-            arrowhead=0, arrowwidth=1,
-            arrowcolor=f"{'rgba(255,215,0,0.35)' if is_ram else 'rgba(155,155,255,0.35)'}",
-            ax=0, ay=ay,
-            font=dict(size=10, color=color),
-            bgcolor="rgba(5,5,18,0.75)",
-            bordercolor=color, borderwidth=1, borderpad=3,
-        ))
+        for _, row in spec_rows.iterrows():
+            d = row['date'].normalize()
+            pnl_val = pnl_by_date.get(d, 0)
+            sv = row['_spec']
+            label = spec_map.get(sv, sv)
+            is_ram = sv in ("ram", "rằm")
+            color = "#FFD700" if is_ram else "#9b9bff"
+            ay = -44 if pnl_val >= 0 else 44
+            annotations.append(dict(
+                x=d, y=pnl_val,
+                xref="x", yref="y",
+                text=label,
+                showarrow=True,
+                arrowhead=0, arrowwidth=1,
+                arrowcolor=f"{'rgba(255,215,0,0.35)' if is_ram else 'rgba(155,155,255,0.35)'}",
+                ax=0, ay=ay,
+                font=dict(size=10, color=color),
+                bgcolor="rgba(5,5,18,0.75)",
+                bordercolor=color, borderwidth=1, borderpad=3,
+            ))
 
     # ── Can Chi – ngày có |PNL| > 10 ──────────────────────────────────────────
-    df_big = df_pnl[df_pnl['pnl'].abs() > 10].copy()
-    for _, row in df_big.iterrows():
-        d = row['date'].normalize()
-        pnl_val = row['pnl']
-        can_str = str(row.get('can', '')).strip()
-        chi_str = str(row.get('chi', '')).strip()
-        if not can_str or can_str == 'nan':
-            continue
-        cc, hc = canchi_color(can_str, chi_str)
-        ay = -66 if pnl_val >= 0 else 66
-        annotations.append(dict(
-            x=d, y=pnl_val,
-            xref="x", yref="y",
-            text=f'<span style="color:{cc}">{can_str}</span> <span style="color:{hc}">{chi_str}</span>',
-            showarrow=True,
-            arrowhead=0, arrowwidth=1,
-            arrowcolor="rgba(180,180,180,0.25)",
-            ax=0, ay=ay,
-            font=dict(size=11),
-            bgcolor="rgba(5,5,18,0.80)",
-            bordercolor="rgba(120,120,120,0.5)",
-            borderwidth=1, borderpad=4,
-        ))
+    if show_canchi:
+        df_big = df_pnl[df_pnl['pnl'].abs() > 10].copy()
+        for _, row in df_big.iterrows():
+            d = row['date'].normalize()
+            pnl_val = row['pnl']
+            can_str = str(row.get('can', '')).strip()
+            chi_str = str(row.get('chi', '')).strip()
+            if not can_str or can_str == 'nan':
+                continue
+            cc, hc = canchi_color(can_str, chi_str)
+            ay = -66 if pnl_val >= 0 else 66
+            annotations.append(dict(
+                x=d, y=pnl_val,
+                xref="x", yref="y",
+                text=f'<span style="color:{cc}">{can_str}</span> <span style="color:{hc}">{chi_str}</span>',
+                showarrow=True,
+                arrowhead=0, arrowwidth=1,
+                arrowcolor="rgba(180,180,180,0.25)",
+                ax=0, ay=ay,
+                font=dict(size=11),
+                bgcolor="rgba(5,5,18,0.80)",
+                bordercolor="rgba(120,120,120,0.5)",
+                borderwidth=1, borderpad=4,
+            ))
 
     # ── Tứ Khí vlines ──────────────────────────────────────────────────────────
-    for term_name, info in get_solar_terms(year).items():
-        td = info['date']
-        td_ms = td.timestamp() * 1000
-        start_ms = start_date.timestamp() * 1000
-        end_ms   = end_date.timestamp() * 1000
-        if start_ms <= td_ms <= end_ms:
-            fig.add_vline(
-                x=td_ms,
-                line_width=2, line_dash="dash",
-                line_color=info['color'], opacity=0.85,
-                annotation_text=f"  {info['icon']} {term_name}",
-                annotation_position="top left",
-                annotation_font=dict(size=12, color=info['color']),
-                annotation_bgcolor="rgba(5,5,18,0.82)",
-                annotation_bordercolor=info['color'],
-                annotation_borderwidth=1,
-                annotation_borderpad=5,
-            )
+    if show_solar:
+        for term_name, info in get_solar_terms(year).items():
+            td = info['date']
+            td_ms = td.timestamp() * 1000
+            start_ms = start_date.timestamp() * 1000
+            end_ms   = end_date.timestamp() * 1000
+            if start_ms <= td_ms <= end_ms:
+                fig.add_vline(
+                    x=td_ms,
+                    line_width=2, line_dash="dash",
+                    line_color=info['color'], opacity=0.85,
+                    annotation_text=f"  {info['icon']} {term_name}",
+                    annotation_position="top left",
+                    annotation_font=dict(size=12, color=info['color']),
+                    annotation_bgcolor="rgba(5,5,18,0.82)",
+                    annotation_bordercolor=info['color'],
+                    annotation_borderwidth=1,
+                    annotation_borderpad=5,
+                )
 
     # ── Zero line ───────────────────────────────────────────────────────────────
     fig.add_hline(y=0, line_dash="solid", line_color="rgba(255,255,255,0.2)", line_width=1)
@@ -244,7 +254,7 @@ def build_figure(df_filtered, year, ngay_sinh=None, gio_sinh=12):
             range=[f'{year}-01-01', f'{year}-12-31'],
             tickformat="%d/%m",
             dtick="M1",           # mỗi tháng 1 tick khi xem cả năm
-            tickangle=-45,
+            tickangle=0,          # nằm ngang
             tickfont=dict(size=9),
             gridcolor='rgba(255,255,255,0.05)',
             fixedrange=False,     # ← cho phép zoom/pan trên trục X
