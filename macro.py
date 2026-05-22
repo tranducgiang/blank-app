@@ -389,6 +389,103 @@ def get_tiet_khi_info(date_obj):
     return tiet_khi, hanh
 
 
+# macro.py - thêm vào cuối file
+
+# ==================== 24 TIẾT KHÍ - MAPPING ====================
+
+# Map tên tiết khí sang góc (kinh độ mặt trời)
+TIET_KHI_TO_GOC = {
+    "Lập Xuân": 315, "Vũ Thủy": 330, "Kinh Trập": 345,
+    "Xuân Phân": 0, "Thanh Minh": 15, "Cốc Vũ": 30,
+    "Lập Hạ": 45, "Tiểu Mãn": 60, "Mang Chủng": 75,
+    "Hạ Chí": 90, "Tiểu Thử": 105, "Đại Thử": 120,
+    "Lập Thu": 135, "Xử Thử": 150, "Bạch Lộ": 165,
+    "Thu Phân": 180, "Hàn Lộ": 195, "Sương Giáng": 210,
+    "Lập Đông": 225, "Tiểu Tuyết": 240, "Đại Tuyết": 255,
+    "Đông Chí": 270, "Tiểu Hàn": 285, "Đại Hàn": 300,
+}
+
+# Map góc sang tên tiết khí (ngược lại)
+GOC_TO_TIET_KHI = {v: k for k, v in TIET_KHI_TO_GOC.items()}
+
+# Map tên tiết khí sang mùa
+TIET_KHI_TO_MUA = {
+    "Lập Xuân": "Xuân", "Vũ Thủy": "Xuân", "Kinh Trập": "Xuân",
+    "Xuân Phân": "Xuân", "Thanh Minh": "Xuân", "Cốc Vũ": "Xuân",
+    "Lập Hạ": "Hạ", "Tiểu Mãn": "Hạ", "Mang Chủng": "Hạ",
+    "Hạ Chí": "Hạ", "Tiểu Thử": "Hạ", "Đại Thử": "Hạ",
+    "Lập Thu": "Thu", "Xử Thử": "Thu", "Bạch Lộ": "Thu",
+    "Thu Phân": "Thu", "Hàn Lộ": "Thu", "Sương Giáng": "Thu",
+    "Lập Đông": "Đông", "Tiểu Tuyết": "Đông", "Đại Tuyết": "Đông",
+    "Đông Chí": "Đông", "Tiểu Hàn": "Đông", "Đại Hàn": "Đông",
+}
+
+# Map tên tiết khí sang icon (biểu tượng)
+TIET_KHI_TO_ICON = {
+    "Lập Xuân": "🌱", "Vũ Thủy": "💧", "Kinh Trập": "⚡",
+    "Xuân Phân": "🌸", "Thanh Minh": "🌿", "Cốc Vũ": "🌾",
+    "Lập Hạ": "☀️", "Tiểu Mãn": "🌾", "Mang Chủng": "🌽",
+    "Hạ Chí": "☀️🔥", "Tiểu Thử": "🔥", "Đại Thử": "🌡️",
+    "Lập Thu": "🍂", "Xử Thử": "🌤️", "Bạch Lộ": "💧",
+    "Thu Phân": "🍁", "Hàn Lộ": "❄️", "Sương Giáng": "🌫️",
+    "Lập Đông": "☁️", "Tiểu Tuyết": "❄️", "Đại Tuyết": "☃️",
+    "Đông Chí": "🎄", "Tiểu Hàn": "🧊", "Đại Hàn": "⛄",
+}
+
+# Màu sắc theo mùa
+MAU_THEO_MUA = {
+    "Xuân": "#4caf50",  # Xanh lá
+    "Hạ": "#ff5252",    # Đỏ
+    "Thu": "#ffb300",   # Cam
+    "Đông": "#29b6f6",  # Xanh dương
+}
+
+# Danh sách 24 tiết khí đầy đủ (theo thứ tự)
+DANH_SACH_24_TIET_KHI = [
+    "Lập Xuân", "Vũ Thủy", "Kinh Trập", "Xuân Phân", "Thanh Minh", "Cốc Vũ",
+    "Lập Hạ", "Tiểu Mãn", "Mang Chủng", "Hạ Chí", "Tiểu Thử", "Đại Thử",
+    "Lập Thu", "Xử Thử", "Bạch Lộ", "Thu Phân", "Hàn Lộ", "Sương Giáng",
+    "Lập Đông", "Tiểu Tuyết", "Đại Tuyết", "Đông Chí", "Tiểu Hàn", "Đại Hàn",
+]
+
+
+def get_tiet_khi_info_by_name(ten_tiet_khi: str) -> dict:
+    """
+    Lấy thông tin đầy đủ của một tiết khí theo tên
+    Returns:
+        dict: {
+            'ten': tên tiết khí,
+            'goc': góc (kinh độ),
+            'icon': biểu tượng,
+            'mua': mùa,
+            'mau': màu sắc
+        }
+    """
+    if ten_tiet_khi not in TIET_KHI_TO_GOC:
+        return None
+    
+    mua = TIET_KHI_TO_MUA.get(ten_tiet_khi, "Xuân")
+    
+    return {
+        'ten': ten_tiet_khi,
+        'goc': TIET_KHI_TO_GOC[ten_tiet_khi],
+        'icon': TIET_KHI_TO_ICON.get(ten_tiet_khi, "🌟"),
+        'mua': mua,
+        'mau': MAU_THEO_MUA.get(mua, "#ffaa00")
+    }
+
+
+def get_tiet_khi_info_by_goc(goc: int) -> dict:
+    """
+    Lấy thông tin đầy đủ của một tiết khí theo góc
+    """
+    ten = GOC_TO_TIET_KHI.get(goc)
+    if ten is None:
+        return None
+    return get_tiet_khi_info_by_name(ten)
+
+
+
     # ==================== BỔ SUNG CHO TuViAnalyzer ====================
 
 # Danh sách Thiên can và Địa chi (dạng list)
@@ -430,3 +527,27 @@ LUC_XUNG = {
     "Thìn": "Tuất", "Tuất": "Thìn",
     "Tỵ": "Hợi", "Hợi": "Tỵ"
 }
+
+
+# macro.py - thêm vào cuối file
+
+TIET_KHI_24 = [
+    # Mùa Xuân (góc 315° → 45°)
+    (315, "Lập Xuân", "🌱"), (330, "Vũ Thủy", "💧"), (345, "Kinh Trập", "⚡"),
+    (0,   "Xuân Phân", "🌸"), (15,  "Thanh Minh", "🌿"), (30,  "Cốc Vũ", "🌾"),
+    # Mùa Hè (45° → 135°)
+    (45,  "Lập Hạ", "☀️"), (60,  "Tiểu Mãn", "🌾"), (75,  "Mang Chủng", "🌽"),
+    (90,  "Hạ Chí", "☀️"), (105, "Tiểu Thử", "🔥"), (120, "Đại Thử", "🌡️"),
+    # Mùa Thu (135° → 225°)
+    (135, "Lập Thu", "🍂"), (150, "Xử Thử", "🌤️"), (165, "Bạch Lộ", "💧"),
+    (180, "Thu Phân", "🍁"), (195, "Hàn Lộ", "❄️"), (210, "Sương Giáng", "🌫️"),
+    # Mùa Đông (225° → 315°)
+    (225, "Lập Đông", "☁️"), (240, "Tiểu Tuyết", "❄️"), (255, "Đại Tuyết", "☃️"),
+    (270, "Đông Chí", "🎄"), (285, "Tiểu Hàn", "🧊"), (300, "Đại Hàn", "⛄"),
+]
+
+def get_24_tiet_khi(year: int) -> list:
+    """Trả về list 24 tiết khí với ngày tháng cụ thể trong năm"""
+    # Cần tính toán ngày dựa trên công thức thiên văn hoặc bảng tra
+    # Hiện tại có thể dùng bảng cố định gần đúng
+    pass

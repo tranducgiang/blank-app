@@ -13,6 +13,7 @@ from macro import (
     DANH_SACH_CAN, DANH_SACH_CHI, SINH_MAP, KHAC_MAP,  # Thêm các biến mới
     parse_ganzhi, get_tiet_khi_info
 )
+import macro
 
 
 class TuViAnalyzer:
@@ -158,7 +159,7 @@ class TuViAnalyzer:
         Returns:
             tuple: (tiet_khi, hanh_tiet_khi)
         """
-        return get_tiet_khi_info(date_obj)
+        return macro.get_tiet_khi_info(date_obj)
 
     def luan_ngay_loc(self, ngay_sinh, ngay_kiem_tra, gio_sinh=12):
         """Luận giải chi tiết một ngày có mang lại lộc hay hao tài"""

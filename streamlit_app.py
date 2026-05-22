@@ -16,7 +16,7 @@ from pnlUtils import (
 )
 from drawchart import build_figure
 from tuvi import TuViAnalyzer
-
+import datetime as dt  # thêm alias để tránh conflict
 
 
 # ──────────────────────────────────────────────────────────────
@@ -779,6 +779,181 @@ def _render_pnl_tuvi_section():
         st.rerun()
 
 
+# streamlit_app.py - cập nhật hàm _render_tiet_khi_circle_section()
+
+def _render_tiet_khi_circle_section():
+    """Section hiển thị vòng tròn 24 tiết khí và đánh dấu ngày sinh"""
+    st.markdown("---")
+    st.markdown("## 🌞 Vòng Tròn 24 Tiết Khí & Ngày Sinh")
+    
+    # Chọn năm để hiển thị
+    col1, col2, col3 = st.columns([2, 1, 1])
+    with col1:
+        nam_hien_tai = dt.datetime.now().year
+        nam_chon = st.number_input(
+            "Chọn năm",
+            min_value=2000,
+            max_value=2030,
+            value=nam_hien_tai,
+            step=1,
+            key="tiet_khi_nam"
+        )
+    
+    with col2:
+        st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
+        if st.button("🔄 Vẽ lại", key="ve_tiet_khi_btn", use_container_width=True):
+            st.rerun()
+    
+    # Lấy ngày sinh từ session state
+    ngay_sinh = st.session_state.get("ngay_sinh_dt")
+    
+    if ngay_sinh is None:
+        st.warning("⚠️ Vui lòng nhập ngày sinh ở phần trên để xem tiết khí tương ứng!")
+        from drawchart import draw_tiet_khi_circle
+        fig = draw_tiet_khi_circle(nam_chon)
+    else:
+        # Vẽ vòng tròn có đánh dấu ngày sinh
+        from drawchart import draw_tiet_khi_circle_with_birthday
+        fig = draw_tiet_khi_circle_with_birthday(nam_chon, ngay_sinh)
+        
+        # Hiển thị thông tin ngày sinh
+        from tuvi import TuViAnalyzer
+        analyzer = TuViAnalyzer()
+        
+        # Tạo datetime cho năm đang xem
+        try:
+            ngay_sinh_trong_nam = dt.datetime(nam_chon, ngay_sinh.month, ngay_sinh.day)
+        except:
+            ngay_sinh_trong_nam = dt.datetime(nam_chon, ngay_sinh.month, 28)
+        
+        tiet_khi, hanh_tiet_khi = analyzer.get_tiet_khi_info(ngay_sinh_trong_nam)
+        
+        # Hiển thị thông tin dạng card đẹp
+        st.markdown(f"""
+        <div style='background:linear-gradient(135deg, #1a1a2e 0%, #0f1120 100%);
+                    border-radius:12px;padding:16px 20px;margin-bottom:16px;
+                    border-left:4px solid #ffaa00;'>
+            <div style='display:flex;align-items:center;gap:15px;flex-wrap:wrap;'>
+                <div style='font-size:48px;'>{'🎂'}</div>
+                <div>
+                    <div style='color:#aaa;font-size:13px;'>Ngày sinh của bạn</div>
+                    <div style='color:#ffcc44;font-size:18px;font-weight:bold;'>
+                        {ngay_sinh.strftime('%d/%m/%Y')}
+                    </div>
+                </div>
+                <div style='width:1px;height:40px;background:#333;'></div>
+                <div>
+                    <div style='color:#aaa;font-size:13px;'>Rơi vào tiết khí</div>
+                    <div style='color:#4caf50;font-size:18px;font-weight:bold;'>
+                        {tiet_khi} 
+                    </div>
+                </div>
+                <div>
+                    <div style='color:#aaa;font-size:13px;'>Hành tiết khí</div>
+                    <div style='color:#29b6f6;font-size:16px;font-weight:bold;'>
+                        {hanh_tiet_khi}
+                    </div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.plotly_chart(fig, use_container_width=True, config={
+        'displaylogo': False,
+        'modeBarButtonsToRemove': ['select2d', 'lasso2d'],
+    })
+
+# streamlit_app.py - thêm hàm mới
+
+def _render_tiet_khi_pnl_section():
+    """Section hiển thị vòng tròn 24 tiết khí với các đường PNL"""
+    st.markdown("---")
+    st.markdown("## 📊 Vòng Tròn Tiết Khí & PNL")
+    st.markdown(
+        "<span style='color:#888;font-size:13px;'>"
+        "Mỗi đường nối từ tâm đến tiết khí thể hiện tổng PNL của tất cả giao dịch trong tiết khí đó. "
+        "🟢 Xanh = PNL dương, 🔴 Đỏ = PNL âm, ⭐ Vàng = Ngày sinh"
+        "</span>",
+        unsafe_allow_html=True
+    )
+    
+    # Kiểm tra có dữ liệu PNL không
+    df_filtered = st.session_state.get("df_filtered")
+    if df_filtered is None or df_filtered[df_filtered["pnl"] != 0].empty:
+        st.warning("⚠️ Chưa có dữ liệu PNL. Hãy upload file và nhấn START!")
+        return
+    
+    # Chọn năm
+    col1, col2, col3 = st.columns([2, 1, 1])
+    with col1:
+        available_years = sorted(df_filtered['date'].dt.year.unique())
+        if available_years:
+            nam_chon = st.selectbox(
+                "Chọn năm",
+                options=available_years,
+                index=len(available_years) - 1 if available_years else 0,
+                key="tiet_khi_pnl_nam"
+            )
+        else:
+            nam_chon = dt.datetime.now().year
+    
+    with col2:
+        st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
+        if st.button("🔄 Vẽ lại", key="ve_tiet_khi_pnl_btn", use_container_width=True):
+            st.rerun()
+    
+    # Lấy ngày sinh
+    ngay_sinh = st.session_state.get("ngay_sinh_dt")
+    
+    # Vẽ biểu đồ
+    from drawchart import draw_tiet_khi_circle_with_pnl
+    fig = draw_tiet_khi_circle_with_pnl(nam_chon, df_filtered, ngay_sinh)
+    
+    st.plotly_chart(fig, use_container_width=True, config={
+        'displaylogo': False,
+        'modeBarButtonsToRemove': ['select2d', 'lasso2d'],
+    })
+    
+    # Hiển thị bảng thống kê PNL theo tiết khí
+    with st.expander("📋 Thống kê PNL theo từng tiết khí", expanded=False):
+        # Tính toán thống kê
+        df_year = df_filtered[df_filtered['date'].dt.year == nam_chon].copy()
+        df_year = df_year[df_year['pnl'] != 0].copy()
+        
+        from tuvi import TuViAnalyzer
+        analyzer = TuViAnalyzer()
+        
+        tiet_khi_stats = {}
+        for _, row in df_year.iterrows():
+            date_obj = row['date'].to_pydatetime() if hasattr(row['date'], 'to_pydatetime') else row['date']
+            pnl_val = float(row['pnl'])
+            tiet_khi, _ = analyzer.get_tiet_khi_info(date_obj)
+            
+            if tiet_khi not in tiet_khi_stats:
+                tiet_khi_stats[tiet_khi] = {'pnl_list': [], 'total': 0, 'count': 0}
+            tiet_khi_stats[tiet_khi]['pnl_list'].append(pnl_val)
+            tiet_khi_stats[tiet_khi]['total'] += pnl_val
+            tiet_khi_stats[tiet_khi]['count'] += 1
+        
+        # Tạo bảng dữ liệu
+        stats_data = []
+        for tiet_khi, stats in tiet_khi_stats.items():
+            tk_info = macro.get_tiet_khi_info_by_name(tiet_khi)
+            stats_data.append({
+                "Tiết khí": f"{tk_info['icon'] if tk_info else ''} {tiet_khi}",
+                "Mùa": tk_info['mua'] if tk_info else '?',
+                "Tổng PNL": f"{stats['total']:+,.2f} USD",
+                "Số ngày GD": stats['count'],
+                "PNL TB/ngày": f"{stats['total']/stats['count']:+,.2f} USD",
+                "Max": f"{max(stats['pnl_list']):+,.2f} USD",
+                "Min": f"{min(stats['pnl_list']):+,.2f} USD"
+            })
+        
+        df_stats = pd.DataFrame(stats_data)
+        df_stats = df_stats.sort_values("Tổng PNL", ascending=False)
+        
+        st.dataframe(df_stats, use_container_width=True, hide_index=True)
+
 # ──────────────────────────────────────────────────────────────
 # MAIN
 # ──────────────────────────────────────────────────────────────
@@ -815,6 +990,10 @@ def main():
     _render_tuvi_section()
     _render_pnl_tuvi_section()
 
-
+     # ========== THÊM SECTION VÒNG TRÒN 24 TIẾT KHÍ ==========
+    _render_tiet_khi_circle_section()
+    # Section vòng tròn tiết khí với PNL (THÊM MỚI)
+    _render_tiet_khi_pnl_section()
+    
 if __name__ == "__main__":
     main()
