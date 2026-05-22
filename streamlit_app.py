@@ -34,6 +34,11 @@ def _init_session_state():
         st.session_state.using_default  = True
         st.session_state.bingx_files    = []
         st.session_state.binance_files  = []
+        # Toggle defaults — chỉ set 1 lần, không bị override khi rerun
+        st.session_state.tog_moon       = True
+        st.session_state.tog_canchi     = True
+        st.session_state.tog_pnl_label  = True
+        st.session_state.tog_solar      = True
 
 
 def _years_from(df_filtered: pd.DataFrame) -> list[int]:
@@ -200,11 +205,11 @@ def _render_chart_section(df_filtered: pd.DataFrame, available_years: list[int])
     nav_cols = st.columns([1, 1] + [0.8] * len(available_years) + [1, 4])
 
     with nav_cols[0]:
-        if st.button("🔄", key="reload"):
+        if st.button("🔄 ", key="reload"):
             st.rerun()
 
     with nav_cols[1]:
-        if st.button("◀ ", key="prev", disabled=(year_idx == 0)):
+        if st.button("◀ Prev", key="prev", disabled=(year_idx == 0)):
             st.session_state.selected_year = available_years[year_idx - 1]
             st.rerun()
 
@@ -231,13 +236,13 @@ def _render_chart_section(df_filtered: pd.DataFrame, available_years: list[int])
     st.markdown('<div class="toggle-row">', unsafe_allow_html=True)
     tog_cols = st.columns([1, 1, 1, 1, 6])
     with tog_cols[0]:
-        show_moon = st.toggle("🌙 Moon / Specdate", value=st.session_state.get("tog_moon", True), key="tog_moon")
+        show_moon = st.toggle("🌙 Moon / Specdate", key="tog_moon")
     with tog_cols[1]:
-        show_canchi = st.toggle("☯ Can Chi", value=st.session_state.get("tog_canchi", True), key="tog_canchi")
+        show_canchi = st.toggle("☯ Can Chi", key="tog_canchi")
     with tog_cols[2]:
-        show_pnl_label = st.toggle("🔢 Nhãn PNL", value=st.session_state.get("tog_pnl_label", True), key="tog_pnl_label")
+        show_pnl_label = st.toggle("🔢 Nhãn PNL", key="tog_pnl_label")
     with tog_cols[3]:
-        show_solar = st.toggle("🌸 Tứ khí", value=st.session_state.get("tog_solar", True), key="tog_solar")
+        show_solar = st.toggle("🌸 Tứ khí", key="tog_solar")
     st.markdown('</div>', unsafe_allow_html=True)
 
     # ── Build + render chart ────────────────────────────────────
