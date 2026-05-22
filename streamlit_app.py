@@ -257,7 +257,7 @@ def _render_chart_section(df_filtered: pd.DataFrame, available_years: list[int])
     with nav_cols[2 + len(available_years) + 1]:
         st.markdown(f'<span class="info-text">{info}</span>', unsafe_allow_html=True)
 
-    st.plotly_chart(fig, use_container_width=True, height=512, config={
+    st.plotly_chart(fig, use_container_width=True, height=640, config={
         'scrollZoom': True,
         'displaylogo': False,
         'modeBarButtonsToRemove': ['select2d', 'lasso2d'],

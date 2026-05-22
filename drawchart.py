@@ -240,6 +240,7 @@ def build_figure(df_filtered, year, ngay_sinh=None, gio_sinh=12, chart_opts=None
 
     # ── Layout – zoom/drag hoàn toàn tự do ─────────────────────────────────────
     fig.update_layout(
+        height=640,
         template='plotly_dark',
         paper_bgcolor='#0d0d1a',
         plot_bgcolor='#0f1120',
