@@ -8,13 +8,15 @@ import numpy as np
 import datetime as dt  # thêm alias để tránh conflict
  
 
-# drawchart.py - sửa lại hàm draw_tiet_khi_circle_with_pnl
+# drawchart.py - cập nhật hàm draw_tiet_khi_circle_with_pnl
 
 def draw_tiet_khi_circle_with_pnl(year: int = None, df_filtered: pd.DataFrame = None, ngay_sinh=None):
     """
-    Vẽ vòng tròn 24 tiết khí, đánh dấu ngày sinh và vẽ các đường PNL
+    Vẽ vòng tròn 24 tiết khí, đánh dấu ngày sinh, ngày hiện tại và vẽ các đường PNL
     - Đường màu xanh lá: PNL dương
     - Đường màu đỏ: PNL âm
+    - Đường màu vàng: Ngày hiện tại (today)
+    - Đường màu cam/đậm: Ngày sinh
     - Bán kính ngắn hơn, nằm trong vòng tròn (từ tâm đến bán kính 0.4~0.7)
     - Độ dày mỏng (width=1.5)
     """
@@ -146,6 +148,116 @@ def draw_tiet_khi_circle_with_pnl(year: int = None, df_filtered: pd.DataFrame = 
                         yanchor=yanchor
                     )
     
+    # ==================== THÊM ĐƯỜNG NGÀY HIỆN TẠI (TODAY) ====================
+    today = dt.datetime.now()
+    today_year = today.year
+    
+    # Chỉ vẽ nếu năm được chọn là năm hiện tại (hoặc có thể vẽ cho mọi năm)
+    # Nếu muốn vẽ cho mọi năm, bỏ comment dòng dưới và comment if
+    # if True:
+    if year == today_year or year == today_year - 1 or year == today_year + 1:
+        from tuvi import TuViAnalyzer
+        analyzer = TuViAnalyzer()
+        
+        # Tạo datetime object cho ngày hiện tại trong năm được chọn
+        try:
+            today_in_year = dt.datetime(year, today.month, today.day)
+        except:
+            today_in_year = dt.datetime(year, today.month, 28)
+        
+        # Lấy tiết khí của ngày hiện tại
+        tiet_khi_today, hanh_tiet_khi_today = analyzer.get_tiet_khi_info(today_in_year)
+        
+        # Lấy thông tin từ macro
+        tk_info_today = macro.get_tiet_khi_info_by_name(tiet_khi_today)
+        
+        if tk_info_today:
+            goc_today = tk_info_today['goc']
+            icon_today = tk_info_today['icon']
+            mau_today = "#FFD700"  # Màu vàng cho ngày hiện tại
+            
+            # Bán kính: chạy đến viền (1.0) để nổi bật, nhưng có thể hơi ngắn hơn để phân biệt với ngày sinh
+            # Dùng bán kính 0.9 để phân biệt với đường ngày sinh (1.0)
+            radius_today = 0.9
+            
+            rad_today = np.radians(90 - goc_today)
+            x_point_today = radius_today * np.cos(rad_today)
+            y_point_today = radius_today * np.sin(rad_today)
+            
+            # Vẽ đường nối từ tâm đến điểm (bán kính 0.9) - MÀU VÀNG
+            fig.add_trace(go.Scatter(
+                x=[0, x_point_today], 
+                y=[0, y_point_today],
+                mode='lines',
+                line=dict(color=mau_today, width=2.5, dash='dot'),  # dash='dot' để phân biệt
+                showlegend=False,
+                hoverinfo='text',
+                hovertext=f"📅 Hôm nay: {today.strftime('%d/%m/%Y')}\n"
+                          f"Tiết khí: {tiet_khi_today} {icon_today}\n"
+                          f"Hành tiết khí: {hanh_tiet_khi_today}\n"
+                          f"Góc: {goc_today}°"
+            ))
+            
+            # Vẽ chấm tròn màu vàng tại điểm cuối
+            fig.add_trace(go.Scatter(
+                x=[x_point_today], y=[y_point_today],
+                mode='markers',
+                marker=dict(size=10, color=mau_today, symbol='circle',
+                           line=dict(width=1, color='white')),
+                showlegend=False,
+                hoverinfo='none'
+            ))
+            
+            # Thêm annotation cho ngày hiện tại (ở bán kính 1.05)
+            x_label_today = 1.05 * np.cos(rad_today)
+            y_label_today = 1.05 * np.sin(rad_today)
+            
+            # Xác định vị trí anchor
+            if -0.2 < x_label_today < 0.2:
+                xanchor_today = 'center'
+            elif x_label_today > 0:
+                xanchor_today = 'left'
+            else:
+                xanchor_today = 'right'
+            
+            if -0.2 < y_label_today < 0.2:
+                yanchor_today = 'middle'
+            elif y_label_today > 0:
+                yanchor_today = 'bottom'
+            else:
+                yanchor_today = 'top'
+            
+            fig.add_annotation(
+                x=x_label_today,
+                y=y_label_today,
+                text=f"📅 <b>{tiet_khi_today}</b> {icon_today}<br>"
+                     f"<span style='font-size:10px'>{today.strftime('%d/%m')}</span>",
+                showarrow=True,
+                arrowhead=2,
+                arrowwidth=2,
+                arrowcolor=mau_today,
+                ax=0.1 * np.cos(rad_today),
+                ay=0.1 * np.sin(rad_today),
+                font=dict(size=9, color=mau_today, weight='bold'),
+                bgcolor='rgba(15,17,32,0.9)',
+                bordercolor=mau_today,
+                borderwidth=1,
+                borderpad=3,
+                xanchor=xanchor_today,
+                yanchor=yanchor_today
+            )
+            
+            # Thêm chú thích góc
+            fig.add_annotation(
+                x=0.45 * np.cos(rad_today),
+                y=0.45 * np.sin(rad_today),
+                text=f"{goc_today}°",
+                showarrow=False,
+                font=dict(size=18, color=mau_today, weight='bold'),
+                bgcolor='rgba(0,0,0,0.4)',
+                borderpad=1
+            )
+    
     # Nếu có ngày sinh, vẽ đường đậm (chạy từ tâm ra đến viền - bán kính 1.0)
     if ngay_sinh is not None:
         from tuvi import TuViAnalyzer
@@ -158,41 +270,41 @@ def draw_tiet_khi_circle_with_pnl(year: int = None, df_filtered: pd.DataFrame = 
             ngay_sinh_trong_nam = dt.datetime(year, ngay_sinh.month, 28)
         
         # Dùng hàm có sẵn get_tiet_khi_info
-        tiet_khi, hanh_tiet_khi = analyzer.get_tiet_khi_info(ngay_sinh_trong_nam)
+        tiet_khi_sinh, hanh_tiet_khi_sinh = analyzer.get_tiet_khi_info(ngay_sinh_trong_nam)
         
         # Lấy thông tin từ macro
-        tk_info = macro.get_tiet_khi_info_by_name(tiet_khi)
+        tk_info_sinh = macro.get_tiet_khi_info_by_name(tiet_khi_sinh)
         
-        if tk_info:
-            goc = tk_info['goc']
-            icon = tk_info['icon']
-            mau = tk_info['mau']
-            mua = tk_info['mua']
+        if tk_info_sinh:
+            goc_sinh = tk_info_sinh['goc']
+            icon_sinh = tk_info_sinh['icon']
+            mau_sinh = tk_info_sinh['mau']
+            mua_sinh = tk_info_sinh['mua']
             
             # Đường ngày sinh chạy đến viền (bán kính 1.0)
-            rad = np.radians(90 - goc)
-            x_point_full = 1.0 * np.cos(rad)
-            y_point_full = 1.0 * np.sin(rad)
+            rad_sinh = np.radians(90 - goc_sinh)
+            x_point_sinh_full = 1.0 * np.cos(rad_sinh)
+            y_point_sinh_full = 1.0 * np.sin(rad_sinh)
             
             # 1. Vẽ đường nối từ tâm đến viền - ĐƯỜNG ĐẬM
             fig.add_trace(go.Scatter(
-                x=[0, x_point_full], 
-                y=[0, y_point_full],
+                x=[0, x_point_sinh_full], 
+                y=[0, y_point_sinh_full],
                 mode='lines',
-                line=dict(color=mau, width=4, dash='solid'),
+                line=dict(color=mau_sinh, width=4, dash='solid'),
                 showlegend=False,
                 hoverinfo='text',
                 hovertext=f"🎂 Ngày sinh: {ngay_sinh.strftime('%d/%m/%Y')}<br>"
-                          f"Tiết khí: {tiet_khi} {icon}<br>"
-                          f"Hành tiết khí: {hanh_tiet_khi}<br>"
-                          f"Góc: {goc}°<br>Mùa: {mua}"
+                          f"Tiết khí: {tiet_khi_sinh} {icon_sinh}<br>"
+                          f"Hành tiết khí: {hanh_tiet_khi_sinh}<br>"
+                          f"Góc: {goc_sinh}°<br>Mùa: {mua_sinh}"
             ))
             
             # 2. Vẽ chấm tròn tại điểm đầu (tâm)
             fig.add_trace(go.Scatter(
                 x=[0], y=[0],
                 mode='markers',
-                marker=dict(size=12, color=mau, symbol='circle', 
+                marker=dict(size=12, color=mau_sinh, symbol='circle', 
                            line=dict(width=2, color='white')),
                 showlegend=False,
                 hoverinfo='none'
@@ -200,63 +312,66 @@ def draw_tiet_khi_circle_with_pnl(year: int = None, df_filtered: pd.DataFrame = 
             
             # 3. Vẽ chấm sao tại điểm cuối (trên viền)
             fig.add_trace(go.Scatter(
-                x=[x_point_full], y=[y_point_full],
+                x=[x_point_sinh_full], y=[y_point_sinh_full],
                 mode='markers',
-                marker=dict(size=16, color=mau, symbol='star-diamond',
+                marker=dict(size=16, color=mau_sinh, symbol='star-diamond',
                            line=dict(width=1.5, color='gold')),
                 showlegend=False,
                 hoverinfo='text',
-                hovertext=f"🎂 {tiet_khi} {icon}"
+                hovertext=f"🎂 {tiet_khi_sinh} {icon_sinh}"
             ))
             
             # 4. Thêm annotation nổi bật (ở bán kính 1.15)
-            x_label = 1.15 * np.cos(rad)
-            y_label = 1.15 * np.sin(rad)
+            x_label_sinh = 1.15 * np.cos(rad_sinh)
+            y_label_sinh = 1.15 * np.sin(rad_sinh)
             
             # Xác định vị trí anchor
-            if -0.2 < x_label < 0.2:
-                xanchor = 'center'
-            elif x_label > 0:
-                xanchor = 'left'
+            if -0.2 < x_label_sinh < 0.2:
+                xanchor_sinh = 'center'
+            elif x_label_sinh > 0:
+                xanchor_sinh = 'left'
             else:
-                xanchor = 'right'
+                xanchor_sinh = 'right'
             
-            if -0.2 < y_label < 0.2:
-                yanchor = 'middle'
-            elif y_label > 0:
-                yanchor = 'bottom'
+            if -0.2 < y_label_sinh < 0.2:
+                yanchor_sinh = 'middle'
+            elif y_label_sinh > 0:
+                yanchor_sinh = 'bottom'
             else:
-                yanchor = 'top'
+                yanchor_sinh = 'top'
             
             fig.add_annotation(
-                x=x_label,
-                y=y_label,
-                text=f"🎂 <b>{tiet_khi}</b> {icon}",
+                x=x_label_sinh,
+                y=y_label_sinh,
+                text=f"🎂 <b>{tiet_khi_sinh}</b> {icon_sinh}<br>"
+                     f"<span style='font-size:10px'>{ngay_sinh.strftime('%d/%m')}</span><br>"
+                     f"<span style='font-size:9px'>{hanh_tiet_khi_sinh}</span>",
                 showarrow=True,
                 arrowhead=2,
                 arrowwidth=2,
-                arrowcolor=mau,
-                ax=0.12 * np.cos(rad),
-                ay=0.12 * np.sin(rad),
-                font=dict(size=10, color=mau, weight='bold'),
+                arrowcolor=mau_sinh,
+                ax=0.12 * np.cos(rad_sinh),
+                ay=0.12 * np.sin(rad_sinh),
+                font=dict(size=10, color=mau_sinh, weight='bold'),
                 bgcolor='rgba(15,17,32,0.9)',
-                bordercolor=mau,
+                bordercolor=mau_sinh,
                 borderwidth=1.5,
                 borderpad=4,
-                xanchor=xanchor,
-                yanchor=yanchor
+                xanchor=xanchor_sinh,
+                yanchor=yanchor_sinh
             )
     
-    # Thêm chú thích cho các đường PNL
+    # Thêm chú thích cho các đường
     fig.add_annotation(
         x=1.38, y=-1.35,
         text="<span style='color:#00e676'>🟢 PNL dương</span>  |  "
              "<span style='color:#ff1744'>🔴 PNL âm</span>  |  "
+             "<span style='color:#FFD700'>📅 Hôm nay</span>  |  "
              "<span style='color:#ffaa00'>⭐ Ngày sinh</span><br>"
              "<span style='font-size:9px'>Độ dài đường tỉ lệ với |PNL|</span>",
         showarrow=False,
-        font=dict(size=9),
-        bgcolor='rgba(15,17,32,0.8)',
+        font=dict(size=12),
+        bgcolor='rgba(15,17,32,0.85)',
         bordercolor='#555',
         borderwidth=1,
         borderpad=4,
@@ -266,10 +381,17 @@ def draw_tiet_khi_circle_with_pnl(year: int = None, df_filtered: pd.DataFrame = 
     
     return fig
 
+# drawchart.py - cập nhật hàm draw_tiet_khi_circle (giữ lại tia và đường 4 trục)
+
 def draw_tiet_khi_circle(year: int = None):
     """
     Vẽ vòng tròn 24 Tiết Khí theo Âm Dương Lịch
     Dùng mapping từ macro.py
+    - GIỮ LẠI 24 đường tia từ tâm ra
+    - GIỮ LẠI đường kẻ đậm cho 4 trục chính
+    - Bỏ các đường bôi đỏ (đường chấm đỏ viền quanh)
+    - Tăng kích thước font chữ
+    - Biểu đồ to hơn
     """
     if year is None:
         year = dt.datetime.now().year
@@ -294,19 +416,18 @@ def draw_tiet_khi_circle(year: int = None):
     radius = 1
     
     # Chuyển đổi góc: 0° = phía trên (12 giờ)
-    # Plotly dùng radian với 0° ở bên phải
     rad = np.radians(90 - angles)
     x = radius * np.cos(rad)
     y = radius * np.sin(rad)
     
     fig = go.Figure()
     
-    # 1. Vẽ vòng tròn ngoài
+    # 1. Vẽ vòng tròn ngoài (đậm hơn)
     theta = np.linspace(0, 2*np.pi, 100)
     fig.add_trace(go.Scatter(
         x=np.cos(theta), y=np.sin(theta),
         mode='lines',
-        line=dict(color='#ffaa00', width=2.5),
+        line=dict(color='#ffaa00', width=3.5),
         fill='toself',
         fillcolor='rgba(255,170,0,0.03)',
         showlegend=False,
@@ -317,166 +438,212 @@ def draw_tiet_khi_circle(year: int = None):
     fig.add_trace(go.Scatter(
         x=0.7*np.cos(theta), y=0.7*np.sin(theta),
         mode='lines',
-        line=dict(color='rgba(255,255,255,0.15)', width=1, dash='dash'),
+        line=dict(color='rgba(255,255,255,0.2)', width=1.5, dash='dash'),
         showlegend=False,
         hoverinfo='none'
     ))
     
-    # 3. Vẽ 24 tia (từ tâm ra ngoài)
+    # 3. GIỮ LẠI 24 đường tia (từ tâm ra ngoài) - ĐÃ GIỮ
     for rad_i in rad:
         fig.add_trace(go.Scatter(
             x=[0, np.cos(rad_i)], y=[0, np.sin(rad_i)],
             mode='lines',
-            line=dict(color='rgba(255,255,255,0.1)', width=0.8),
+            line=dict(color='rgba(255,255,255,0.12)', width=0.8),
             showlegend=False,
             hoverinfo='none'
         ))
     
-    # 4. Vẽ 4 trục chính (Xuân/Hạ/Thu/Đông chí + phân)
-    chinh_goc = [0, 90, 180, 270]  # Xuân phân, Hạ chí, Thu phân, Đông chí
+    # ==================== NGÀY THÁNG CHO CÁC TIẾT KHÍ ====================
+    tiet_khi_dates = [
+        # Mùa Xuân
+        (315, 4, 2, "Lập Xuân"), (330, 19, 2, "Vũ Thủy"), (345, 5, 3, "Kinh Trập"),
+        (0, 20, 3, "Xuân Phân"), (15, 4, 4, "Thanh Minh"), (30, 20, 4, "Cốc Vũ"),
+        # Mùa Hè
+        (45, 5, 5, "Lập Hạ"), (60, 21, 5, "Tiểu Mãn"), (75, 5, 6, "Mang Chủng"),
+        (90, 21, 6, "Hạ Chí"), (105, 7, 7, "Tiểu Thử"), (120, 23, 7, "Đại Thử"),
+        # Mùa Thu
+        (135, 7, 8, "Lập Thu"), (150, 23, 8, "Xử Thử"), (165, 7, 9, "Bạch Lộ"),
+        (180, 23, 9, "Thu Phân"), (195, 8, 10, "Hàn Lộ"), (210, 23, 10, "Sương Giáng"),
+        # Mùa Đông
+        (225, 7, 11, "Lập Đông"), (240, 22, 11, "Tiểu Tuyết"), (255, 7, 12, "Đại Tuyết"),
+        (270, 21, 12, "Đông Chí"), (285, 5, 1, "Tiểu Hàn"), (300, 20, 1, "Đại Hàn"),
+    ]
+    
+    # 4. GIỮ LẠI 4 trục chính - CÓ ĐƯỜNG KẺ ĐẬM
+    chinh_goc = [0, 90, 180, 270]
     chinh_ten = ["Xuân Phân", "Hạ Chí", "Thu Phân", "Đông Chí"]
     chinh_icon = ["🌸", "☀️", "🍂", "❄️"]
     
     for goc, ten, icon in zip(chinh_goc, chinh_ten, chinh_icon):
         rad_chinh = np.radians(90 - goc)
+        
+        # Tìm ngày tháng
+        ngay_str = ""
+        for g, ngay, thang, ten_tk in tiet_khi_dates:
+            if g == goc:
+                ngay_str = f"{ngay:02d}/{thang:02d}"
+                break
+        
+        # VẼ ĐƯỜNG KẺ ĐẬM cho 4 trục chính
         fig.add_trace(go.Scatter(
-            x=[0, 1.15*np.cos(rad_chinh)], y=[0, 1.15*np.sin(rad_chinh)],
+            x=[0, 1.18*np.cos(rad_chinh)], y=[0, 1.18*np.sin(rad_chinh)],
             mode='lines',
-            line=dict(color='#ffaa00', width=2.5, dash='solid'),
+            line=dict(color='#ffaa00', width=3, dash='solid'),
             showlegend=False,
             hoverinfo='none'
         ))
         
-        # Thêm label cho 4 trục chính
+        # Thêm label
         fig.add_annotation(
-            x=1.25*np.cos(rad_chinh),
-            y=1.25*np.sin(rad_chinh),
-            text=f"{icon}<br>{ten}",
+            x=1.28*np.cos(rad_chinh),
+            y=1.28*np.sin(rad_chinh),
+            text=f"{icon}<b style='font-size:16px'>{ten}</b><br><span style='font-size:13px'>{ngay_str}</span>",
             showarrow=False,
-            font=dict(size=12, color='#ffaa00', weight='bold'),
+            font=dict(size=14, color='#ffaa00', weight='bold'),
             xanchor='center',
             yanchor='middle',
-            bgcolor='rgba(15,17,32,0.9)',
-            borderwidth=1,
+            bgcolor='rgba(15,17,32,0.85)',
+            borderwidth=1.5,
             bordercolor='#ffaa00',
-            borderpad=4
+            borderpad=6
         )
     
     # 5. Đánh dấu các điểm tiết khí
     for i, (goc, ten, icon, mau) in enumerate(tiet_khi_data):
         rad_i = rad[i]
         
+        # Tìm ngày tháng
+        ngay_str = ""
+        for g, ngay, thang, ten_tk in tiet_khi_dates:
+            if g == goc and ten_tk == ten:
+                ngay_str = f"{ngay:02d}/{thang:02d}"
+                break
+        
         # Chấm tròn tại vị trí
         fig.add_trace(go.Scatter(
             x=[x[i]], y=[y[i]],
             mode='markers+text',
-            marker=dict(size=12, color=mau, symbol='circle', line=dict(width=1, color='white')),
+            marker=dict(size=14, color=mau, symbol='circle', 
+                       line=dict(width=1.5, color='white')),
             text=[icon],
             textposition='middle center',
-            textfont=dict(size=14, color='white'),
+            textfont=dict(size=18, color='white'),
             showlegend=False,
             hoverinfo='text',
-            hovertext=f"<b>{ten}</b><br>Góc: {goc}°<br>Kinh độ mặt trời: {goc}°"
+            hovertext=f"<b>{ten}</b><br>📅 {ngay_str}<br>🎯 Góc: {goc}°"
         ))
         
-        # Thêm label nhỏ cho các tiết khí không phải 4 trục chính
+        # Thêm label cho các tiết khí
         if goc not in chinh_goc:
-            # Điều chỉnh vị trí label tránh trùng
-            x_label = 1.1 * np.cos(rad_i)
-            y_label = 1.1 * np.sin(rad_i)
+            x_label = 1.15 * np.cos(rad_i)
+            y_label = 1.15 * np.sin(rad_i)
             
-            # Nếu ở gần mép, đẩy ra xa hơn
-            if abs(x_label) > 0.9 or abs(y_label) > 0.9:
-                x_label = 1.2 * np.cos(rad_i)
-                y_label = 1.2 * np.sin(rad_i)
+            if abs(x_label) > 0.85 or abs(y_label) > 0.85:
+                x_label = 1.25 * np.cos(rad_i)
+                y_label = 1.25 * np.sin(rad_i)
             
             fig.add_annotation(
                 x=x_label,
                 y=y_label,
-                text=ten,
+                text=f"<b>{ten}</b><br><span style='font-size:11px'>{ngay_str}</span>",
                 showarrow=False,
-                font=dict(size=9, color=mau),
+                font=dict(size=11, color=mau, weight='bold'),
                 xanchor='center' if abs(x_label) < 0.8 else ('left' if x_label > 0 else 'right'),
                 yanchor='middle',
-                bgcolor='rgba(15,17,32,0.7)',
-                borderpad=2
+                bgcolor='rgba(15,17,32,0.75)',
+                borderpad=4,
+                borderwidth=0.5,
+                bordercolor=mau
             )
     
-    # 6. Vẽ 12 cung địa chi (Tý, Sửu, Dần...)
+    # 6. Vẽ 12 cung địa chi
     dia_chi = ["Tý", "Sửu", "Dần", "Mão", "Thìn", "Tỵ", "Ngọ", "Mùi", "Thân", "Dậu", "Tuất", "Hợi"]
-    dc_goc = np.linspace(0, 330, 12)  # 0° = Tý (ở trên)
+    dc_goc = np.linspace(0, 330, 12)
     
     for i, (goc, dc) in enumerate(zip(dc_goc, dia_chi)):
         rad_dc = np.radians(90 - goc)
-        x_dc = 0.85 * np.cos(rad_dc)
-        y_dc = 0.85 * np.sin(rad_dc)
+        x_dc = 0.82 * np.cos(rad_dc)
+        y_dc = 0.82 * np.sin(rad_dc)
         
         fig.add_annotation(
             x=x_dc, y=y_dc,
-            text=dc,
+            text=f"<b>{dc}</b>",
             showarrow=False,
-            font=dict(size=11, color='#8888cc', weight='bold'),
+            font=dict(size=14, color='#aaaaff', weight='bold'),
             xanchor='center',
             yanchor='middle',
-            bgcolor='rgba(136,136,204,0.15)',
-            borderwidth=0.5,
-            bordercolor='#8888cc',
-            borderpad=3
+            bgcolor='rgba(136,136,204,0.12)',
+            borderwidth=0.8,
+            bordercolor='#aaaaff',
+            borderpad=4
         )
     
     # 7. Thêm tâm vòng tròn
     fig.add_trace(go.Scatter(
         x=[0], y=[0],
         mode='markers',
-        marker=dict(size=8, color='#ffaa00', symbol='circle'),
+        marker=dict(size=10, color='#ffaa00', symbol='circle',
+                   line=dict(width=2, color='white')),
         showlegend=False,
         hoverinfo='none'
     ))
     
-    # Thêm chú thích 4 mùa
+    # 8. Thêm 4 mùa
     mua_data = [
-        (45, "XUÂN", "#4caf50", -45),
-        (135, "HẠ", "#ff5252", -135),
-        (225, "THU", "#ffb300", -225),
-        (315, "ĐÔNG", "#29b6f6", -315),
+        (45, "XUÂN", "#4caf50"),
+        (135, "HẠ", "#ff5252"),
+        (225, "THU", "#ffb300"),
+        (315, "ĐÔNG", "#29b6f6"),
     ]
     
-    for goc, ten, mau, goc_quay in mua_data:
+    for goc, ten, mau in mua_data:
         rad_mua = np.radians(90 - goc)
-        x_mua = 0.55 * np.cos(rad_mua)
-        y_mua = 0.55 * np.sin(rad_mua)
+        x_mua = 0.58 * np.cos(rad_mua)
+        y_mua = 0.58 * np.sin(rad_mua)
         
         fig.add_annotation(
             x=x_mua, y=y_mua,
-            text=ten,
+            text=f"<b>{ten}</b>",
             showarrow=False,
-            font=dict(size=16, color=mau, weight='bold'),
+            font=dict(size=20, color=mau, weight='bold'),
             xanchor='center',
             yanchor='middle',
-            opacity=0.7
+            opacity=0.8
         )
     
-    # Cập nhật layout
+    # 9. Thêm chú thích
+    fig.add_annotation(
+        x=1.45, y=-1.42,
+        text="📅 Ngày tháng theo Dương lịch (gần đúng)",
+        showarrow=False,
+        font=dict(size=10, color='#888'),
+        bgcolor='rgba(15,17,32,0.7)',
+        borderpad=3,
+        xanchor='right',
+        yanchor='top'
+    )
+    
+    # Cập nhật layout - KÍCH THƯỚC TO HƠN
     fig.update_layout(
         title=dict(
             text=f"<b>🌞 Vòng Tròn 24 Tiết Khí Năm {year}</b><br>" +
-                 "<span style='font-size:12px;color:#888'>" +
+                 "<span style='font-size:14px;color:#aaa'>" +
                  "Mỗi cung 15° kinh độ mặt trời · 4 mùa Xuân-Hạ-Thu-Đông</span>",
             x=0.5,
             xanchor='center',
-            font=dict(size=16, color='#ffaa00')
+            font=dict(size=20, color='#ffaa00')
         ),
-        width=800,
-        height=800,
+        width=1000,
+        height=1000,
         xaxis=dict(
             visible=False,
-            range=[-1.5, 1.5],
+            range=[-1.6, 1.6],
             showgrid=False,
             zeroline=False
         ),
         yaxis=dict(
             visible=False,
-            range=[-1.5, 1.5],
+            range=[-1.6, 1.6],
             showgrid=False,
             zeroline=False,
             scaleanchor="x",
@@ -485,7 +652,7 @@ def draw_tiet_khi_circle(year: int = None):
         plot_bgcolor='#0f1120',
         paper_bgcolor='#0d0d1a',
         hovermode='closest',
-        margin=dict(l=60, r=60, t=100, b=60),
+        margin=dict(l=80, r=80, t=120, b=80),
         showlegend=False,
         annotations=fig.layout.annotations if hasattr(fig.layout, 'annotations') else []
     )
@@ -528,7 +695,7 @@ def draw_tiet_khi_timeline(df_filtered: pd.DataFrame, year: int):
             opacity=0.7,
             annotation_text=f"  {ten[:2]}",
             annotation_position="top left" if i % 2 == 0 else "bottom left",
-            annotation_font=dict(size=8, color=colors[i])
+            annotation_font=dict(size=12, color=colors[i])
         )
     
     return fig
